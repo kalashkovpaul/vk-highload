@@ -39,7 +39,7 @@ int Server::loadConfig() {
         std::getline(ssline, key, '=');
         std::getline(ssline, value);
 
-        if (key[0] == '#') { // comment
+        if (key[0] == '#') {
             lineNum++;
             continue;
         } else if (key == "pool_size") {
@@ -69,3 +69,128 @@ int Server::loadConfig() {
 
     return OK;
 }
+
+void Server::run() {
+    while (true) {
+        socklen_t addr_size = sizeof(this->clientAddress);
+        this->clientSocket = accept(serverSocket, (struct sockaddr *) &this->clientAddress, &addr_size);
+
+        char peerIP[INET_ADDRSTRLEN] = {0};
+        if (inet_ntop(AF_INET, &this->clientAddress.sin_addr, peerIP, sizeof(peerIP))) {
+            std::cout << "Accepted connection with " << peerIP << "\n";
+        } else {
+            std::cout << "Failed to get the IP of the client\n";
+            return;
+        }
+
+        this->queueMutex.lock();
+        this->requestQueue.push(clientSocket);
+        this->cv.notify_one();
+        this->queueMutex.unlock();
+        std::cout << "Pushed request to the queue\n";
+    }
+}
+
+std::string getResponse(std::stringstream &requestLine, std::string &url, bool isHead) {
+    std::string version;
+    std::getline(requestLine, version, ' ');
+    if (version != HTTP_1_1 && version != HTTP_1_0) {
+        std::cout << version << "\n";
+        std::string
+            response = VERSION_NOT_SUPPORTED;
+        return response;
+    }
+
+    url = decodeUrl(url);
+    url = StripQueryParams(url);
+    url.insert(0, "..");
+    bool isDir = false;
+    if (std::filesystem::is_directory(url)) {
+        url += ROOT_FILE;
+        isDir = true;
+    }
+
+    std::fstream targetFile;
+    targetFile.open(url, std::ios::in);
+    if (!targetFile.is_open()) {
+        if (isDir) {
+            std::cerr << "Failed to load index.html in dir path\n";
+            std::string response = FORBIDDEN;
+            if (!isHead) {
+                response += FORBIDDEN_BODY;
+            }
+            return response;
+        }
+        std::cerr << "Failed to load the file\n";
+        return notFound();
+    }
+    // If everything is good we load the file
+    auto res = readFile(url);
+
+    // Preparing and sending the response
+    std::string response = head();
+    auto length = res.size();
+
+    response = response + CONTENT_LENGTH + " " + std::to_string(length);
+
+    if (!isHead) {
+        if (std::filesystem::is_regular_file(url)) {
+            response += "\r\n" + CONTENT_TYPE + " " + parseMime(url);
+        }
+        response += "\r\n\r\n" + res;
+    } else {
+        response += "\r\n\r\n";
+    }
+
+    return response;
+}
+
+std::string handle(const std::string &request) {
+    // Parsing
+    std::stringstream reqStream(request);
+    std::string line;
+    std::getline(reqStream, line);
+
+    std::stringstream requestLine(line);
+    std::string method;
+    std::getline(requestLine, method, ' ');
+
+    std::string url;
+
+    std::getline(requestLine, url, ' ');
+
+    if (url.find("../") != std::string::npos) {
+        return notFound();
+    }
+    bool isHead = false;
+    if (method != HEAD && method != GET) {
+        return notImplimented();
+    }
+    if (method == HEAD) {
+        isHead = true;
+    }
+    return getResponse(requestLine, url, isHead);
+}
+
+void Server::handleRequest() {
+    std::unique_lock<std::mutex> lock(this->queueMutex, std::defer_lock);
+    int client_socket = -1;
+
+    while (true) {
+        lock.lock();
+        this->cv.wait(lock, [this]() { return !this->requestQueue.empty(); });
+        client_socket = this->requestQueue.front();
+        this->requestQueue.pop();
+        lock.unlock();
+
+        char req[2 * REQ_SIZE];
+        recv(client_socket, req, sizeof(req), 0);
+        std::cout << "Created handler\n";
+        std::string reply = handle(req);
+        std::cout << reply << "\n";
+        std::cout << "Client Request : \n" << req << "\n";
+        send(client_socket, reply.c_str(), reply.size(), 0);
+        close(client_socket);
+    }
+}
+

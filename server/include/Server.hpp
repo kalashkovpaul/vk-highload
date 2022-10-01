@@ -11,8 +11,13 @@
 
 #include <fstream>
 #include <sstream>
+#include <arpa/inet.h>
+#include <string>
+#include <unistd.h>
 
 #include "constants.hpp"
+#include "responses.hpp"
+#include "utils.hpp"
 
 // Сервер будет работать стандартно:
 // инициализация - настройка адреса сервера (port, family...), bind к сокету, listen
