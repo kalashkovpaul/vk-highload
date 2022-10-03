@@ -14,6 +14,7 @@
 #include <arpa/inet.h>
 #include <string>
 #include <unistd.h>
+#include <filesystem>
 
 #include "constants.hpp"
 #include "responses.hpp"

@@ -2,6 +2,7 @@
     "files.associations": {
         "exception": "cpp",
         "chrono": "cpp",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "__mutex_base": "cpp"
     }
 }

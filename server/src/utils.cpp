@@ -44,7 +44,6 @@ std::string readFile(const std::string &path) {
     if (file.is_open()) {
         fl << file.rdbuf();
     }
-
     file.close();
     return fl.str();
 }

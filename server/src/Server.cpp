@@ -124,10 +124,8 @@ std::string getResponse(std::stringstream &requestLine, std::string &url, bool i
         std::cerr << "Failed to load the file\n";
         return notFound();
     }
-    // If everything is good we load the file
     auto res = readFile(url);
 
-    // Preparing and sending the response
     std::string response = head();
     auto length = res.size();
 
@@ -146,7 +144,6 @@ std::string getResponse(std::stringstream &requestLine, std::string &url, bool i
 }
 
 std::string handle(const std::string &request) {
-    // Parsing
     std::stringstream reqStream(request);
     std::string line;
     std::getline(reqStream, line);
