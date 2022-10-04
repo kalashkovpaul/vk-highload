@@ -10,7 +10,7 @@ std::vector<std::string> tokenize(const std::string &s, const std::string &del);
 std::string StripQueryParams(const std::string &s);
 
 std::string parseMime(const std::string &s);
-std::string notImplimented();
+std::string notImplemented();
 std::string notFound();
 
 std::string head();

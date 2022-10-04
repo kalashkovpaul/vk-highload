@@ -3,7 +3,7 @@
 #include <sstream>
 #include "utils.hpp"
 
-std::string notImplimented() {
+std::string notImplemented() {
     std::string response = NOT_IMPLEMENTED;
     return response;
 }
@@ -42,6 +42,11 @@ std::string readFile(const std::string &path) {
     std::ifstream file(path, std::ios::in | std::ios::binary);
     std::stringstream fl;
     if (file.is_open()) {
+        // TODO try - catch
+        // Ответ: документация гарантирует, что даже если возникают гонки и
+        // с файлом что-то случается, в буфер просто попадёт часть информации
+        // т.е. исключения бросаться не будут
+        // https://cplusplus.com/reference/fstream/ifstream/rdbuf/
         fl << file.rdbuf();
     }
     file.close();

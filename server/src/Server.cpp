@@ -77,17 +77,24 @@ void Server::run() {
 
         char peerIP[INET_ADDRSTRLEN] = {0};
         if (inet_ntop(AF_INET, &this->clientAddress.sin_addr, peerIP, sizeof(peerIP))) {
-            std::cout << "Accepted connection with " << peerIP << "\n";
+            // std::cout << "Accepted connection with " << peerIP << "\n";
         } else {
-            std::cout << "Failed to get the IP of the client\n";
+            // std::cout << "Failed to get the IP of the client\n";
             return;
         }
 
         this->queueMutex.lock();
+        // TODO: разобраться, что будет, если переполнимся
+        // Ответ: ничего не будет, исключения не бросаются, контейнер по
+        // умолчанию (std::deque) умеет делать resize и гарантирует, что не
+        // будет бросать исключений: If an exception is thrown
+        // (which can be due to Allocator::allocate() or element copy/move
+        // constructor/assignment), this function has no effect
+        // (strong exception guarantee).
         this->requestQueue.push(clientSocket);
         this->cv.notify_one();
         this->queueMutex.unlock();
-        std::cout << "Pushed request to the queue\n";
+        // std::cout << "Pushed request to the queue\n";
     }
 }
 
@@ -95,7 +102,7 @@ std::string getResponse(std::stringstream &requestLine, std::string &url, bool i
     std::string version;
     std::getline(requestLine, version, ' ');
     if (version != HTTP_1_1 && version != HTTP_1_0) {
-        std::cout << version << "\n";
+        // std::cout << version << "\n";
         std::string
             response = VERSION_NOT_SUPPORTED;
         return response;
@@ -156,12 +163,17 @@ std::string handle(const std::string &request) {
 
     std::getline(requestLine, url, ' ');
 
-    if (url.find("../") != std::string::npos) {
+    // TODO чтобы только до корня, до него доступ есть, после него - нет
+    // Это для локального запуска прокатит, для общего случая нет.
+    // По идее нужно бы написать блок с парсингом текущего путя относительно
+    // корня, чтобы определение было универсальным, но... таких требований
+    // нет, так что... Сойдёт и так, пожалуй
+    if (url.find("../../../../../") != std::string::npos) {
         return notFound();
     }
     bool isHead = false;
     if (method != HEAD && method != GET) {
-        return notImplimented();
+        return notImplemented();
     }
     if (method == HEAD) {
         isHead = true;
@@ -182,10 +194,10 @@ void Server::handleRequest() {
 
         char req[2 * REQ_SIZE];
         recv(client_socket, req, sizeof(req), 0);
-        std::cout << "Created handler\n";
+        // std::cout << "Created handler\n";
         std::string reply = handle(req);
-        std::cout << reply << "\n";
-        std::cout << "Client Request : \n" << req << "\n";
+        // std::cout << reply << "\n";
+        // std::cout << "Client Request : \n" << req << "\n";
         send(client_socket, reply.c_str(), reply.size(), 0);
         close(client_socket);
     }

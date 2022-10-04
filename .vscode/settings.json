@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "exception": "cpp",
-        "chrono": "cpp",
-        "iosfwd": "cpp",
-        "__mutex_base": "cpp"
-    }
-}

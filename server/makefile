@@ -34,7 +34,7 @@ func-test:
 	python3 test.py
 
 bench-server:
-	wrk -t12 -c400 -d30s 'http://127.0.0.1:$(PORT)/test/css.css'
+	wrk -t12 -c400 -d30s 'http://127.0.0.1:$(PORT)/test/text..txt'
 
 bench-nginx:
-	wrk -t12 -c400 -d30s 'http://127.0.0.1:$(NGINX)/test/css.css'
+	wrk -t12 -c400 -d30s 'http://127.0.0.1:$(NGINX)/test/text..txt'
